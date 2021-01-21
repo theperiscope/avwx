@@ -10,7 +10,7 @@
       "request": "launch",
       "mode": "debug",
       "program": "${file}",
-      "args": ["KORD", "PHOG"]
+      "args": ["taf", "KORD", "-p"]
 
     }
   ]
