@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"theperiscope.org/avwx/internal/pkg/metars"
 	"theperiscope.org/avwx/internal/pkg/tafs"
 )
 
@@ -34,6 +35,7 @@ var tafCmd = &cobra.Command{
 }
 
 var prettyPrint = false
+var includeMetar = false
 
 func taf(cmd *cobra.Command, args []string) error {
 
@@ -48,6 +50,15 @@ func taf(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if includeMetar {
+		metarData, err := metars.GetData(stations)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(strings.Join(metarData, "\n"))
+	}
+
 	if prettyPrint {
 		for i := range data {
 			data[i] = strings.Replace(data[i], " FM", "\n  FM", -1)
@@ -60,4 +71,5 @@ func taf(cmd *cobra.Command, args []string) error {
 
 func init() {
 	tafCmd.Flags().BoolVarP(&prettyPrint, "pretty", "p", false, "Easier to read TAF format.")
+	tafCmd.Flags().BoolVarP(&includeMetar, "metar", "m", false, "Include METAR data with TAF.")
 }
