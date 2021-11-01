@@ -15,6 +15,7 @@ var (
 
 func init() {
 
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.AddCommand(metarCmd)
 	rootCmd.AddCommand(tafCmd)
 
