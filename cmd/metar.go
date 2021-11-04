@@ -42,7 +42,17 @@ func metar(cmd *cobra.Command, args []string) error {
 	var err error
 
 	client := api.NewClient(api.DefaultApiEndPoint)
-	data, err = client.GetMetar(stations)
+
+	hoursBeforeNow := int32(3)
+	mostRecentForEachStation := true
+
+	options := api.MetarOptions{
+		Stations:                 &stations,
+		HoursBeforeNow:           &hoursBeforeNow,
+		MostRecentForEachStation: &mostRecentForEachStation,
+	}
+
+	data, err = client.GetMetar(options)
 
 	var result []string
 	for _, metar := range data {

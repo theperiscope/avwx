@@ -44,9 +44,18 @@ func taf(cmd *cobra.Command, args []string) error {
 	var data []tafs.Taf
 	var err error
 
+	hoursBeforeNow := int32(9)
+	mostRecentForEachStation := true
+
+	tafOptions := api.TafOptions{
+		Stations:                 &stations,
+		HoursBeforeNow:           &hoursBeforeNow,
+		MostRecentForEachStation: &mostRecentForEachStation,
+	}
+
 	client := api.NewClient(api.DefaultApiEndPoint)
 
-	data, err = client.GetTaf(stations)
+	data, err = client.GetTaf(tafOptions)
 
 	if err != nil {
 		return err
@@ -58,7 +67,13 @@ func taf(cmd *cobra.Command, args []string) error {
 	}
 
 	if includeMetar {
-		metarData, err := client.GetMetar(stations)
+		metarOptions := api.MetarOptions{
+			Stations:                 &stations,
+			HoursBeforeNow:           &hoursBeforeNow,
+			MostRecentForEachStation: &mostRecentForEachStation,
+		}
+
+		metarData, err := client.GetMetar(metarOptions)
 		if err != nil {
 			return err
 		}
