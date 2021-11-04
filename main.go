@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"theperiscope.org/avwx/cmd"
+	"github.com/theperiscope/avwx/cmd"
 )
 
 func main() {

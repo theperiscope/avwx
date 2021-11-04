@@ -5,7 +5,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"theperiscope.org/avwx/internal/pkg/metars"
+	"github.com/theperiscope/avwx/api"
+	"github.com/theperiscope/avwx/metars"
 )
 
 var metarCmd = &cobra.Command{
@@ -37,15 +38,21 @@ func metar(cmd *cobra.Command, args []string) error {
 
 	stations := args
 
-	var data []string
+	var data []metars.Metar
 	var err error
 
-	data, err = metars.GetData(stations)
+	client := api.NewClient(api.DefaultApiEndPoint)
+	data, err = client.GetMetar(stations)
+
+	var result []string
+	for _, metar := range data {
+		result = append(result, metar.RawText)
+	}
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(strings.Join(data, "\n"))
+	fmt.Println(strings.Join(result, "\n"))
 	return nil
 }

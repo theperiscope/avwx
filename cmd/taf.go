@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"theperiscope.org/avwx/internal/pkg/metars"
-	"theperiscope.org/avwx/internal/pkg/tafs"
+	"github.com/theperiscope/avwx/api"
+	"github.com/theperiscope/avwx/tafs"
 )
 
 var tafCmd = &cobra.Command{
@@ -41,31 +41,43 @@ func taf(cmd *cobra.Command, args []string) error {
 
 	stations := args
 
-	var data []string
+	var data []tafs.Taf
 	var err error
 
-	data, err = tafs.GetData(stations)
+	client := api.NewClient(api.DefaultApiEndPoint)
+
+	data, err = client.GetTaf(stations)
 
 	if err != nil {
 		return err
 	}
 
+	var result []string
+	for _, taf := range data {
+		result = append(result, taf.RawText)
+	}
+
 	if includeMetar {
-		metarData, err := metars.GetData(stations)
+		metarData, err := client.GetMetar(stations)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println(strings.Join(metarData, "\n"))
+		var result []string
+		for _, metar := range metarData {
+			result = append(result, metar.RawText)
+		}
+
+		fmt.Println(strings.Join(result, "\n"))
 	}
 
 	if prettyPrint {
-		for i := range data {
-			data[i] = strings.Replace(data[i], " FM", "\n  FM", -1)
+		for i := range result {
+			result[i] = strings.Replace(result[i], " FM", "\n  FM", -1)
 		}
 	}
 
-	fmt.Println(strings.Join(data, "\n"))
+	fmt.Println(strings.Join(result, "\n"))
 	return nil
 }
 

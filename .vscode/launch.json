@@ -9,8 +9,9 @@
       "type": "go",
       "request": "launch",
       "mode": "debug",
-      "program": "${file}",
-      "args": ["taf", "KORD", "-p"]
+      "program": "${workspaceFolder}/main.go",
+      "cwd": "${workspaceFolder}",
+      "args": ["taf", "KORD", "-m", "-p"]
 
     }
   ]
