@@ -123,10 +123,11 @@ func taf(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
+	tafCmd.Flags().SortFlags = false
 	tafCmd.Flags().BoolVarP(&prettyPrint, "pretty", "p", false, "Easier to read TAF format.")
 	tafCmd.Flags().BoolVarP(&includeMetar, "metar", "m", false, "Include METAR data with TAF.")
 
-	tafCmd.Flags().StringSliceVar(&tafOptions.Stations, "stations", []string{}, "")
+	tafCmd.Flags().StringSliceVar(&tafOptions.Stations, "stations", []string{}, "required")
 	tafCmd.Flags().Var(&tafStartTime, "startTime", "")
 	tafCmd.Flags().Var(&tafEndTime, "endTime", "")
 	tafCmd.Flags().StringVar(&tafOptions.TimeType, "timeType", "", "")

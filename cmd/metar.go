@@ -70,7 +70,9 @@ func metar(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	metarCmd.Flags().StringSliceVar(&metarOptions.Stations, "stations", []string{}, "")
+	metarCmd.Flags().SortFlags = false
+
+	metarCmd.Flags().StringSliceVar(&metarOptions.Stations, "stations", []string{}, "required")
 	metarCmd.Flags().Var(&metarStartTime, "startTime", "")
 	metarCmd.Flags().Var(&metarEndTime, "endTime", "")
 	metarCmd.Flags().Int32Var(&metarOptions.HoursBeforeNow, "hoursBeforeNow", 6, "")
