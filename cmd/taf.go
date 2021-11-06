@@ -69,44 +69,44 @@ func taf(cmd *cobra.Command, args []string) error {
 		if ff.IsValid() {
 			if ff.CanSet() {
 
-				// expect be all Ptrs in the structs
-				if ff.Type().Kind() != reflect.Ptr {
+				// expect be non Ptrs in the structs
+				if ff.Type().Kind() == reflect.Ptr {
 					continue
 				}
 
-				ptrType := ff.Type().Elem()
+				t := ff.Type()
 
-				if ptrType.String() == "iso8601.Time" {
+				if t.String() == "iso8601.Time" {
 					vv, err := iso8601.ParseString(v)
 					if err == nil {
 						vvv := iso8601.Time{Time: vv}
-						ff.Set(reflect.ValueOf(&vvv))
+						ff.Set(reflect.ValueOf(vvv))
 					}
 					continue
 				}
 
-				if ptrType.Kind() == reflect.Slice {
-					if ptrType.Elem().Kind() == reflect.String {
+				if t.Kind() == reflect.Slice {
+					if t.Elem().Kind() == reflect.String {
 						vv := strings.Split(v, " ")
-						ff.Set(reflect.ValueOf(&vv))
+						ff.Set(reflect.ValueOf(vv))
 					}
-				} else if ptrType.Kind() == reflect.String {
-					ff.Set(reflect.ValueOf(&v))
-				} else if ptrType.Kind() == reflect.Float64 {
+				} else if t.Kind() == reflect.String {
+					ff.Set(reflect.ValueOf(v))
+				} else if t.Kind() == reflect.Float64 {
 					vv, err := strconv.ParseFloat(v, 64)
 					if err == nil {
-						ff.Set(reflect.ValueOf(&vv))
+						ff.Set(reflect.ValueOf(vv))
 					}
-				} else if ptrType.Kind() == reflect.Int32 {
+				} else if t.Kind() == reflect.Int32 {
 					vv, err := strconv.ParseInt(v, 10, 32)
 					vvv := int32(vv)
 					if err == nil {
-						ff.Set(reflect.ValueOf(&vvv))
+						ff.Set(reflect.ValueOf(vvv))
 					}
-				} else if ptrType.Kind() == reflect.Bool {
+				} else if t.Kind() == reflect.Bool {
 					vv, err := strconv.ParseBool(v)
 					if err == nil {
-						ff.Set(reflect.ValueOf(&vv))
+						ff.Set(reflect.ValueOf(vv))
 					}
 				}
 			}
