@@ -16,8 +16,8 @@ import (
 const DefaultApiEndPoint = "https://aviationweather.gov/adds/dataserver_current/httpparam"
 
 type Client interface {
-	GetMetar(options MetarOptions) ([]metars.Metar, error)
-	GetTaf(options TafOptions) ([]tafs.Taf, error)
+	GetMetar(options MetarOptions) (*metars.Response, error)
+	GetTaf(options TafOptions) (*tafs.Response, error)
 }
 
 type client struct {
@@ -71,7 +71,7 @@ func NewClient(apiEndPoint string) Client {
 	}
 }
 
-func (c *client) GetMetar(options MetarOptions) ([]metars.Metar, error) {
+func (c *client) GetMetar(options MetarOptions) (*metars.Response, error) {
 	u, err := url.Parse(c.ApiEndPoint)
 	if err != nil {
 		return nil, err
@@ -144,10 +144,10 @@ func (c *client) GetMetar(options MetarOptions) ([]metars.Metar, error) {
 
 	}
 
-	return r.Data.Metars, nil
+	return &r, nil
 }
 
-func (c *client) GetTaf(options TafOptions) ([]tafs.Taf, error) {
+func (c *client) GetTaf(options TafOptions) (*tafs.Response, error) {
 	u, err := url.Parse(c.ApiEndPoint)
 	if err != nil {
 		return nil, err
@@ -162,10 +162,11 @@ func (c *client) GetTaf(options TafOptions) ([]tafs.Taf, error) {
 		q.Set("stationString", strings.Join(*options.Stations, " "))
 	}
 	if options.StartTime != nil {
-		q.Set("startTime", options.StartTime.UTC().Format("2006-01-02T15:04:05"))
+		q.Set("startTime", strconv.FormatInt(options.StartTime.UTC().Unix(), 10))
 	}
 	if options.EndTime != nil {
-		q.Set("endTime", options.EndTime.UTC().Format("2006-01-02T15:04:05"))
+		//q.Set("endTime", options.EndTime.UTC().Format("2006-01-02T15:04:05"))
+		q.Set("endTime", strconv.FormatInt(options.EndTime.UTC().Unix(), 10))
 	}
 	if options.TimeType != nil { // only difference from GetMetar
 		q.Set("timeType", *options.TimeType)
@@ -223,5 +224,5 @@ func (c *client) GetTaf(options TafOptions) ([]tafs.Taf, error) {
 
 	}
 
-	return r.Data.Tafs, nil
+	return &r, nil
 }

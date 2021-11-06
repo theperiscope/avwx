@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"flag"
 	"fmt"
+	"reflect"
+	"strconv"
 	"strings"
 
+	"github.com/relvacode/iso8601"
 	"github.com/spf13/cobra"
 	"github.com/theperiscope/avwx/api"
-	"github.com/theperiscope/avwx/metars"
 )
 
 var metarCmd = &cobra.Command{
@@ -36,26 +39,97 @@ var metarCmd = &cobra.Command{
 
 func metar(cmd *cobra.Command, args []string) error {
 
-	stations := args
-
-	var data []metars.Metar
 	var err error
 
-	client := api.NewClient(api.DefaultApiEndPoint)
+	options := api.MetarOptions{}
+	elems := reflect.ValueOf(&options).Elem()
 
-	hoursBeforeNow := int32(3)
-	mostRecentForEachStation := true
+	argsMap := make(map[string]string)
+	flag.Parse()
 
-	options := api.MetarOptions{
-		Stations:                 &stations,
-		HoursBeforeNow:           &hoursBeforeNow,
-		MostRecentForEachStation: &mostRecentForEachStation,
+	currentArg := ""
+	for _, f := range flag.Args() {
+		if strings.HasPrefix(f, "--") && elems.FieldByName(strings.TrimPrefix(f, "--")).IsValid() {
+			currentArg = f
+			continue
+		}
+
+		if len(currentArg) > 0 && len(f) > 0 {
+			argsMap[strings.TrimPrefix(currentArg, "--")] = f
+		}
 	}
 
-	data, err = client.GetMetar(options)
+	for k, v := range argsMap {
+		ff := elems.FieldByName(k)
+
+		if ff.IsValid() {
+			if ff.CanSet() {
+
+				// expect be all Ptrs in the structs
+				if ff.Type().Kind() != reflect.Ptr {
+					continue
+				}
+
+				ptrType := ff.Type().Elem()
+
+				if ptrType.String() == "iso8601.Time" {
+					vv, err := iso8601.ParseString(v)
+					if err == nil {
+						vvv := iso8601.Time{Time: vv}
+						ff.Set(reflect.ValueOf(&vvv))
+					}
+					continue
+				}
+
+				if ptrType.Kind() == reflect.Slice {
+					if ptrType.Elem().Kind() == reflect.String {
+						vv := strings.Split(v, " ")
+						ff.Set(reflect.ValueOf(&vv))
+					}
+				} else if ptrType.Kind() == reflect.String {
+					ff.Set(reflect.ValueOf(&v))
+				} else if ptrType.Kind() == reflect.Float64 {
+					vv, err := strconv.ParseFloat(v, 64)
+					if err == nil {
+						ff.Set(reflect.ValueOf(&vv))
+					}
+				} else if ptrType.Kind() == reflect.Int32 {
+					vv, err := strconv.ParseInt(v, 10, 32)
+					vvv := int32(vv)
+					if err == nil {
+						ff.Set(reflect.ValueOf(&vvv))
+					}
+				} else if ptrType.Kind() == reflect.Bool {
+					vv, err := strconv.ParseBool(v)
+					if err == nil {
+						ff.Set(reflect.ValueOf(&vv))
+					}
+				}
+			}
+		}
+	}
+
+	client := api.NewClient(api.DefaultApiEndPoint)
+	data, err := client.GetMetar(options)
+
+	if err != nil {
+		return err
+	}
+
+	if len(data.Errors) > 0 {
+		for _, e := range data.Errors {
+			fmt.Println("ERROR:", e)
+		}
+	}
+
+	if len(data.Warnings) > 0 {
+		for _, e := range data.Warnings {
+			fmt.Println("WARNING:", e)
+		}
+	}
 
 	var result []string
-	for _, metar := range data {
+	for _, metar := range data.Data.Metars {
 		result = append(result, metar.RawText)
 	}
 
@@ -63,6 +137,9 @@ func metar(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println(strings.Join(result, "\n"))
+	if len(result) > 0 {
+		fmt.Println(strings.Join(result, "\n"))
+	}
+
 	return nil
 }

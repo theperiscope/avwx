@@ -10,22 +10,12 @@ type Response struct {
 	XMLName      xml.Name   `xml:"response"`
 	Version      string     `xml:"version,attr"`
 	RequestIndex int32      `xml:"request_index"`
-	Errors       []Error    `xml:"errors>error"`
-	Warnings     []Warning  `xml:"warnings>warning"`
+	Errors       []string   `xml:"errors>error"`
+	Warnings     []string   `xml:"warnings>warning"`
 	TimeTakenMs  int32      `xml:"time_taken_ms"`
 	DataSource   DataSource `xml:"data_source"`
 	Request      Request    `xml:"request"`
 	Data         Data       `xml:"data"`
-}
-
-type Error struct {
-	XMLName xml.Name `xml:"error"`
-	Error   string   `xml:",innerXml"`
-}
-
-type Warning struct {
-	XMLName xml.Name `xml:"warning"`
-	Warning string   `xml:",innerXml"`
 }
 
 type Request struct {
