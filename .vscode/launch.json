@@ -11,8 +11,19 @@
       "mode": "debug",
       "program": "${workspaceFolder}/main.go",
       "cwd": "${workspaceFolder}",
-      "args": ["taf", "KORD", "-m", "-p"]
-
+      "args": [
+        "taf",
+        "-m",
+        "-p",
+        "--stations",
+        "KORD PHNL",
+        "--mostRecentForEachStation",
+        "true",
+        "--startTime",
+        "2021-11-05T18:00:00Z",
+        "--endTime",
+        "2021-11-07T00:00:00Z"
+      ]
     }
   ]
 }

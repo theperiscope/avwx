@@ -16,8 +16,8 @@ import (
 const DefaultApiEndPoint = "https://aviationweather.gov/adds/dataserver_current/httpparam"
 
 type Client interface {
-	GetMetar(options MetarOptions) ([]metars.Metar, error)
-	GetTaf(options TafOptions) ([]tafs.Taf, error)
+	GetMetar(options MetarOptions) (*metars.Response, error)
+	GetTaf(options TafOptions) (*tafs.Response, error)
 }
 
 type client struct {
@@ -25,41 +25,39 @@ type client struct {
 	ApiEndPoint string
 }
 
-// MetarOptions uses pointers to distinguish set (not nil) from unset fields (nil)
 type MetarOptions struct {
-	Stations                 *[]string
-	StartTime                *iso8601.Time
-	EndTime                  *iso8601.Time
-	HoursBeforeNow           *int32
-	MostRecent               *bool
-	MostRecentForEachStation *bool
-	MinLat                   *float64
-	MaxLat                   *float64
-	MinLon                   *float64
-	MaxLon                   *float64
-	RadialDistance           *string
-	FlightPath               *[]string
-	MinDegreeDistance        *float64
-	Fields                   *[]string
+	Stations                 []string
+	StartTime                iso8601.Time
+	EndTime                  iso8601.Time
+	HoursBeforeNow           int32
+	MostRecent               bool
+	MostRecentForEachStation bool
+	MinLat                   float64
+	MaxLat                   float64
+	MinLon                   float64
+	MaxLon                   float64
+	RadialDistance           string
+	FlightPath               []string
+	MinDegreeDistance        float64
+	Fields                   []string
 }
 
-// MetarOptions uses pointers to distinguish set (not nil) from unset fields (nil)
 type TafOptions struct {
-	Stations                 *[]string
-	StartTime                *iso8601.Time
-	EndTime                  *iso8601.Time
-	TimeType                 *string // only difference from MetarOptions
-	HoursBeforeNow           *int32
-	MostRecent               *bool
-	MostRecentForEachStation *bool
-	MinLat                   *float64
-	MaxLat                   *float64
-	MinLon                   *float64
-	MaxLon                   *float64
-	RadialDistance           *string
-	FlightPath               *[]string
-	MinDegreeDistance        *float64
-	Fields                   *[]string
+	Stations                 []string
+	StartTime                iso8601.Time
+	EndTime                  iso8601.Time
+	TimeType                 string // only difference from MetarOptions
+	HoursBeforeNow           int32
+	MostRecent               bool
+	MostRecentForEachStation bool
+	MinLat                   float64
+	MaxLat                   float64
+	MinLon                   float64
+	MaxLon                   float64
+	RadialDistance           string
+	FlightPath               []string
+	MinDegreeDistance        float64
+	Fields                   []string
 }
 
 func NewClient(apiEndPoint string) Client {
@@ -71,7 +69,7 @@ func NewClient(apiEndPoint string) Client {
 	}
 }
 
-func (c *client) GetMetar(options MetarOptions) ([]metars.Metar, error) {
+func (c *client) GetMetar(options MetarOptions) (*metars.Response, error) {
 	u, err := url.Parse(c.ApiEndPoint)
 	if err != nil {
 		return nil, err
@@ -82,47 +80,47 @@ func (c *client) GetMetar(options MetarOptions) ([]metars.Metar, error) {
 	q.Set("requestType", "retrieve")
 	q.Set("format", "xml")
 
-	if options.Stations != nil {
-		q.Set("stationString", strings.Join(*options.Stations, " "))
+	if len(options.Stations) > 0 {
+		q.Set("stationString", strings.Join(options.Stations, " "))
 	}
-	if options.StartTime != nil {
-		q.Set("startTime", options.StartTime.UTC().Format("2006-01-02T15:04:05"))
+	if !options.StartTime.IsZero() {
+		q.Set("startTime", options.StartTime.UTC().Format("2006-01-02T15:04:05Z"))
 	}
-	if options.EndTime != nil {
-		q.Set("endTime", options.EndTime.UTC().Format("2006-01-02T15:04:05"))
+	if !options.EndTime.IsZero() {
+		q.Set("endTime", options.EndTime.UTC().Format("2006-01-02T15:04:05Z"))
 	}
-	if options.HoursBeforeNow != nil {
-		q.Set("hoursBeforeNow", strconv.FormatInt(int64(*options.HoursBeforeNow), 10))
+	if options.HoursBeforeNow > 0 {
+		q.Set("hoursBeforeNow", strconv.FormatInt(int64(options.HoursBeforeNow), 10))
 	}
-	if options.MostRecent != nil {
-		q.Set("mostRecent", strconv.FormatBool(*options.MostRecent))
+	if options.MostRecent {
+		q.Set("mostRecent", strconv.FormatBool(options.MostRecent))
 	}
-	if options.MostRecentForEachStation != nil {
-		q.Set("mostRecentForEachStation", strconv.FormatBool(*options.MostRecentForEachStation))
+	if options.MostRecentForEachStation {
+		q.Set("mostRecentForEachStation", strconv.FormatBool(options.MostRecentForEachStation))
 	}
-	if options.MinLat != nil {
-		q.Set("minLat", strconv.FormatFloat(*options.MinLat, 'f', -1, 64))
+	if options.MinLat != 0 {
+		q.Set("minLat", strconv.FormatFloat(options.MinLat, 'f', -1, 64))
 	}
-	if options.MaxLat != nil {
-		q.Set("maxLat", strconv.FormatFloat(*options.MaxLat, 'f', -1, 64))
+	if options.MaxLat != 0 {
+		q.Set("maxLat", strconv.FormatFloat(options.MaxLat, 'f', -1, 64))
 	}
-	if options.MinLon != nil {
-		q.Set("minLon", strconv.FormatFloat(*options.MinLon, 'f', -1, 64))
+	if options.MinLon != 0 {
+		q.Set("minLon", strconv.FormatFloat(options.MinLon, 'f', -1, 64))
 	}
-	if options.MaxLon != nil {
-		q.Set("maxLon", strconv.FormatFloat(*options.MaxLon, 'f', -1, 64))
+	if options.MaxLon != 0 {
+		q.Set("maxLon", strconv.FormatFloat(options.MaxLon, 'f', -1, 64))
 	}
-	if options.RadialDistance != nil {
-		q.Set("radialDistance", *options.RadialDistance)
+	if len(options.RadialDistance) > 0 {
+		q.Set("radialDistance", options.RadialDistance)
 	}
-	if options.FlightPath != nil {
-		q.Set("flightPath", strings.Join(*options.FlightPath, " "))
+	if len(options.FlightPath) > 0 {
+		q.Set("flightPath", strings.Join(options.FlightPath, " "))
 	}
-	if options.MinDegreeDistance != nil {
-		q.Set("minDegreeDistance", strconv.FormatFloat(*options.MinDegreeDistance, 'f', -1, 64))
+	if options.MinDegreeDistance != 0 {
+		q.Set("minDegreeDistance", strconv.FormatFloat(options.MinDegreeDistance, 'f', -1, 64))
 	}
-	if options.Fields != nil {
-		q.Set("fields", strings.Join(*options.Fields, " "))
+	if len(options.Fields) > 0 {
+		q.Set("fields", strings.Join(options.Fields, " "))
 	}
 
 	u.RawQuery = q.Encode()
@@ -144,10 +142,10 @@ func (c *client) GetMetar(options MetarOptions) ([]metars.Metar, error) {
 
 	}
 
-	return r.Data.Metars, nil
+	return &r, nil
 }
 
-func (c *client) GetTaf(options TafOptions) ([]tafs.Taf, error) {
+func (c *client) GetTaf(options TafOptions) (*tafs.Response, error) {
 	u, err := url.Parse(c.ApiEndPoint)
 	if err != nil {
 		return nil, err
@@ -158,50 +156,50 @@ func (c *client) GetTaf(options TafOptions) ([]tafs.Taf, error) {
 	q.Set("requestType", "retrieve")
 	q.Set("format", "xml")
 
-	if options.Stations != nil {
-		q.Set("stationString", strings.Join(*options.Stations, " "))
+	if len(options.Stations) > 0 {
+		q.Set("stationString", strings.Join(options.Stations, " "))
 	}
-	if options.StartTime != nil {
-		q.Set("startTime", options.StartTime.UTC().Format("2006-01-02T15:04:05"))
+	if !options.StartTime.IsZero() {
+		q.Set("startTime", options.StartTime.UTC().Format("2006-01-02T15:04:05Z"))
 	}
-	if options.EndTime != nil {
-		q.Set("endTime", options.EndTime.UTC().Format("2006-01-02T15:04:05"))
+	if !options.EndTime.IsZero() {
+		q.Set("endTime", options.EndTime.UTC().Format("2006-01-02T15:04:05Z"))
 	}
-	if options.TimeType != nil { // only difference from GetMetar
-		q.Set("timeType", *options.TimeType)
+	if len(options.TimeType) > 0 {
+		q.Set("timeType", options.TimeType)
 	}
-	if options.HoursBeforeNow != nil {
-		q.Set("hoursBeforeNow", strconv.FormatInt(int64(*options.HoursBeforeNow), 10))
+	if options.HoursBeforeNow > 0 {
+		q.Set("hoursBeforeNow", strconv.FormatInt(int64(options.HoursBeforeNow), 10))
 	}
-	if options.MostRecent != nil {
-		q.Set("mostRecent", strconv.FormatBool(*options.MostRecent))
+	if options.MostRecent {
+		q.Set("mostRecent", strconv.FormatBool(options.MostRecent))
 	}
-	if options.MostRecentForEachStation != nil {
-		q.Set("mostRecentForEachStation", strconv.FormatBool(*options.MostRecentForEachStation))
+	if options.MostRecentForEachStation {
+		q.Set("mostRecentForEachStation", strconv.FormatBool(options.MostRecentForEachStation))
 	}
-	if options.MinLat != nil {
-		q.Set("minLat", strconv.FormatFloat(*options.MinLat, 'f', -1, 64))
+	if options.MinLat != 0 {
+		q.Set("minLat", strconv.FormatFloat(options.MinLat, 'f', -1, 64))
 	}
-	if options.MaxLat != nil {
-		q.Set("maxLat", strconv.FormatFloat(*options.MaxLat, 'f', -1, 64))
+	if options.MaxLat != 0 {
+		q.Set("maxLat", strconv.FormatFloat(options.MaxLat, 'f', -1, 64))
 	}
-	if options.MinLon != nil {
-		q.Set("minLon", strconv.FormatFloat(*options.MinLon, 'f', -1, 64))
+	if options.MinLon != 0 {
+		q.Set("minLon", strconv.FormatFloat(options.MinLon, 'f', -1, 64))
 	}
-	if options.MaxLon != nil {
-		q.Set("maxLon", strconv.FormatFloat(*options.MaxLon, 'f', -1, 64))
+	if options.MaxLon != 0 {
+		q.Set("maxLon", strconv.FormatFloat(options.MaxLon, 'f', -1, 64))
 	}
-	if options.RadialDistance != nil {
-		q.Set("radialDistance", *options.RadialDistance)
+	if len(options.RadialDistance) > 0 {
+		q.Set("radialDistance", options.RadialDistance)
 	}
-	if options.FlightPath != nil {
-		q.Set("flightPath", strings.Join(*options.FlightPath, " "))
+	if len(options.FlightPath) > 0 {
+		q.Set("flightPath", strings.Join(options.FlightPath, " "))
 	}
-	if options.MinDegreeDistance != nil {
-		q.Set("minDegreeDistance", strconv.FormatFloat(*options.MinDegreeDistance, 'f', -1, 64))
+	if options.MinDegreeDistance != 0 {
+		q.Set("minDegreeDistance", strconv.FormatFloat(options.MinDegreeDistance, 'f', -1, 64))
 	}
-	if options.Fields != nil {
-		q.Set("fields", strings.Join(*options.Fields, " "))
+	if len(options.Fields) > 0 {
+		q.Set("fields", strings.Join(options.Fields, " "))
 	}
 
 	u.RawQuery = q.Encode()
@@ -223,5 +221,5 @@ func (c *client) GetTaf(options TafOptions) ([]tafs.Taf, error) {
 
 	}
 
-	return r.Data.Tafs, nil
+	return &r, nil
 }
