@@ -15,15 +15,14 @@
         "taf",
         "-m",
         "-p",
-        "--",
-        "--Stations",
+        "--stations",
         "KORD PHNL",
-        "--HoursBeforeNow",
-        "9"
-        //"--StartTime",
-        //"2021-11-05T18:00:00Z",
-        //"--EndTime",
-        //"2021-11-07T00:00:00Z"
+        "--mostRecentForEachStation",
+        "true",
+        "--startTime",
+        "2021-11-05T18:00:00Z",
+        "--endTime",
+        "2021-11-07T00:00:00Z"
       ]
     }
   ]

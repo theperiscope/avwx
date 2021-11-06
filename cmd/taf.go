@@ -1,120 +1,49 @@
 package cmd
 
 import (
-	"flag"
+	"errors"
 	"fmt"
-	"reflect"
-	"strconv"
 	"strings"
 
-	"github.com/relvacode/iso8601"
 	"github.com/spf13/cobra"
 	"github.com/theperiscope/avwx/api"
 	"github.com/theperiscope/avwx/tafs"
 )
 
 var tafCmd = &cobra.Command{
-	Use:   "taf <station(s)>",
-	Short: "Get TAF data",
-	Long:  `Get TAF data from the Aviation Weather Center's Text Data Server.`,
-	RunE:  taf,
-	Args:  cobra.MinimumNArgs(1),
-	Example: `  - single ICAO station:
-    avwx taf KORD
-
-  - multiple ICAO stations:
-    avwx taf KORD PHOG
-
-  - partial ICAO station name:
-    avwx taf PH*
-
-  - state/province: (use two-letter U.S. state or two-letter Canadian province)
-    avwx taf @il
-
-  - country: (use two-letter country abbreviation)
-    avwx taf ~au
-
-  - mix and match:
-    avwx taf KORD CY* ~au @hi`,
+	Use:     "taf",
+	Short:   "Get TAF data",
+	Long:    `Get TAF data from the Aviation Weather Center's Text Data Server.`,
+	RunE:    taf,
+	Args:    cobra.MinimumNArgs(0),
+	Example: `   For examples and detailed description of all flags visit https://www.aviationweather.gov/dataserver/example?datatype=taf`,
 }
 
 var prettyPrint = false
 var includeMetar = false
+
+var tafOptions api.TafOptions
+var tafStartTime iso8601TimeValue
+var tafEndTime iso8601TimeValue
 
 func taf(cmd *cobra.Command, args []string) error {
 
 	var data *tafs.Response
 	var err error
 
-	tafOptions := api.TafOptions{}
-	elems := reflect.ValueOf(&tafOptions).Elem()
-
-	argsMap := make(map[string]string)
-	flag.Parse()
-	currentArg := ""
-	for _, f := range flag.Args() {
-		if strings.HasPrefix(f, "--") && elems.FieldByName(strings.TrimPrefix(f, "--")).IsValid() {
-			currentArg = f
-			continue
-		}
-
-		if len(currentArg) > 0 && len(f) > 0 {
-			argsMap[strings.TrimPrefix(currentArg, "--")] = f
-		}
+	if len(tafOptions.Stations) == 0 {
+		return errors.New("At least one station must be specified.")
 	}
 
-	for k, v := range argsMap {
-		ff := elems.FieldByName(k)
+	if !tafStartTime.IsZero() {
+		tafOptions.StartTime.Time = tafStartTime.Time
+	}
 
-		if ff.IsValid() {
-			if ff.CanSet() {
-
-				// expect be non Ptrs in the structs
-				if ff.Type().Kind() == reflect.Ptr {
-					continue
-				}
-
-				t := ff.Type()
-
-				if t.String() == "iso8601.Time" {
-					vv, err := iso8601.ParseString(v)
-					if err == nil {
-						vvv := iso8601.Time{Time: vv}
-						ff.Set(reflect.ValueOf(vvv))
-					}
-					continue
-				}
-
-				if t.Kind() == reflect.Slice {
-					if t.Elem().Kind() == reflect.String {
-						vv := strings.Split(v, " ")
-						ff.Set(reflect.ValueOf(vv))
-					}
-				} else if t.Kind() == reflect.String {
-					ff.Set(reflect.ValueOf(v))
-				} else if t.Kind() == reflect.Float64 {
-					vv, err := strconv.ParseFloat(v, 64)
-					if err == nil {
-						ff.Set(reflect.ValueOf(vv))
-					}
-				} else if t.Kind() == reflect.Int32 {
-					vv, err := strconv.ParseInt(v, 10, 32)
-					vvv := int32(vv)
-					if err == nil {
-						ff.Set(reflect.ValueOf(vvv))
-					}
-				} else if t.Kind() == reflect.Bool {
-					vv, err := strconv.ParseBool(v)
-					if err == nil {
-						ff.Set(reflect.ValueOf(vv))
-					}
-				}
-			}
-		}
+	if !tafEndTime.IsZero() {
+		tafOptions.EndTime.Time = tafEndTime.Time
 	}
 
 	client := api.NewClient(api.DefaultApiEndPoint)
-
 	data, err = client.GetTaf(tafOptions)
 
 	if err != nil {
@@ -122,15 +51,11 @@ func taf(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(data.Errors) > 0 {
-		for _, e := range data.Errors {
-			fmt.Println("ERROR:", e)
-		}
+		return errors.New("ADDS error(s): " + strings.Join(data.Errors, "\n"))
 	}
 
 	if len(data.Warnings) > 0 {
-		for _, e := range data.Warnings {
-			fmt.Println("WARNING:", e)
-		}
+		return errors.New("ADDS warnings(s): " + strings.Join(data.Warnings, "\n"))
 	}
 
 	var result []string
@@ -200,4 +125,20 @@ func taf(cmd *cobra.Command, args []string) error {
 func init() {
 	tafCmd.Flags().BoolVarP(&prettyPrint, "pretty", "p", false, "Easier to read TAF format.")
 	tafCmd.Flags().BoolVarP(&includeMetar, "metar", "m", false, "Include METAR data with TAF.")
+
+	tafCmd.Flags().StringSliceVar(&tafOptions.Stations, "stations", []string{}, "")
+	tafCmd.Flags().Var(&tafStartTime, "startTime", "")
+	tafCmd.Flags().Var(&tafEndTime, "endTime", "")
+	tafCmd.Flags().StringVar(&tafOptions.TimeType, "timeType", "", "")
+	tafCmd.Flags().Int32Var(&tafOptions.HoursBeforeNow, "hoursBeforeNow", 6, "")
+	tafCmd.Flags().BoolVar(&tafOptions.MostRecent, "mostRecent", false, "")
+	tafCmd.Flags().BoolVar(&tafOptions.MostRecentForEachStation, "mostRecentForEachStation", true, "")
+	tafCmd.Flags().Float64Var(&tafOptions.MinLat, "minLat", 0, "")
+	tafCmd.Flags().Float64Var(&tafOptions.MaxLat, "maxLat", 0, "")
+	tafCmd.Flags().Float64Var(&tafOptions.MinLon, "minLon", 0, "")
+	tafCmd.Flags().Float64Var(&tafOptions.MaxLon, "maxLon", 0, "")
+	tafCmd.Flags().StringVar(&tafOptions.RadialDistance, "radialDistance", "", "")
+	tafCmd.Flags().StringSliceVar(&tafOptions.FlightPath, "flightPath", []string{}, "")
+	tafCmd.Flags().Float64Var(&tafOptions.MinDegreeDistance, "minDegreeDistance", 0, "")
+	tafCmd.Flags().StringSliceVar(&tafOptions.Fields, "fields", []string{}, "")
 }

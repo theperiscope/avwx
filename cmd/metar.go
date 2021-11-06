@@ -1,131 +1,56 @@
 package cmd
 
 import (
-	"flag"
+	"errors"
 	"fmt"
-	"reflect"
-	"strconv"
 	"strings"
 
-	"github.com/relvacode/iso8601"
 	"github.com/spf13/cobra"
 	"github.com/theperiscope/avwx/api"
 )
 
 var metarCmd = &cobra.Command{
-	Use:   "metar <station(s)>",
-	Short: "Get METAR data",
-	Long:  `Get METAR data from the Aviation Weather Center's Text Data Server.`,
-	RunE:  metar,
-	Args:  cobra.MinimumNArgs(1),
-	Example: `  - single ICAO station:
-    avwx metar KORD
-
-  - multiple ICAO stations:
-    avwx metar KORD PHOG
-
-  - partial ICAO station name:
-    avwx metar PH*
-
-  - state/province: (use two-letter U.S. state or two-letter Canadian province)
-    avwx metar @il
-
-  - country: (use two-letter country abbreviation)
-    avwx metar ~au
-
-  - mix and match:
-    avwx metar KORD CY* ~au @hi`,
+	Use:     "metar",
+	Short:   "Get METAR data",
+	Long:    `Get METAR data from the Aviation Weather Center's Text Data Server.`,
+	RunE:    metar,
+	Args:    cobra.MinimumNArgs(0),
+	Example: `   For examples and detailed description of all flags visit https://www.aviationweather.gov/dataserver/example?datatype=metar`,
 }
+
+var metarOptions api.MetarOptions
+var metarStartTime iso8601TimeValue
+var metarEndTime iso8601TimeValue
 
 func metar(cmd *cobra.Command, args []string) error {
 
 	var err error
 
-	options := api.MetarOptions{}
-	elems := reflect.ValueOf(&options).Elem()
-
-	argsMap := make(map[string]string)
-	flag.Parse()
-
-	currentArg := ""
-	for _, f := range flag.Args() {
-		if strings.HasPrefix(f, "--") && elems.FieldByName(strings.TrimPrefix(f, "--")).IsValid() {
-			currentArg = f
-			continue
-		}
-
-		if len(currentArg) > 0 && len(f) > 0 {
-			argsMap[strings.TrimPrefix(currentArg, "--")] = f
-		}
+	if len(metarOptions.Stations) == 0 {
+		return errors.New("At least one station must be specified.")
 	}
 
-	for k, v := range argsMap {
-		ff := elems.FieldByName(k)
+	if !metarStartTime.IsZero() {
+		metarOptions.StartTime.Time = metarStartTime.Time
+	}
 
-		if ff.IsValid() {
-			if ff.CanSet() {
-
-				// expect be non Ptrs in the structs
-				if ff.Type().Kind() == reflect.Ptr {
-					continue
-				}
-
-				t := ff.Type()
-
-				if t.String() == "iso8601.Time" {
-					vv, err := iso8601.ParseString(v)
-					if err == nil {
-						vvv := iso8601.Time{Time: vv}
-						ff.Set(reflect.ValueOf(vvv))
-					}
-					continue
-				}
-
-				if t.Kind() == reflect.Slice {
-					if t.Elem().Kind() == reflect.String {
-						vv := strings.Split(v, " ")
-						ff.Set(reflect.ValueOf(vv))
-					}
-				} else if t.Kind() == reflect.String {
-					ff.Set(reflect.ValueOf(&v))
-				} else if t.Kind() == reflect.Float64 {
-					vv, err := strconv.ParseFloat(v, 64)
-					if err == nil {
-						ff.Set(reflect.ValueOf(vv))
-					}
-				} else if t.Kind() == reflect.Int32 {
-					vv, err := strconv.ParseInt(v, 10, 32)
-					vvv := int32(vv)
-					if err == nil {
-						ff.Set(reflect.ValueOf(vvv))
-					}
-				} else if t.Kind() == reflect.Bool {
-					vv, err := strconv.ParseBool(v)
-					if err == nil {
-						ff.Set(reflect.ValueOf(vv))
-					}
-				}
-			}
-		}
+	if !metarEndTime.IsZero() {
+		metarOptions.EndTime.Time = metarEndTime.Time
 	}
 
 	client := api.NewClient(api.DefaultApiEndPoint)
-	data, err := client.GetMetar(options)
+	data, err := client.GetMetar(metarOptions)
 
 	if err != nil {
 		return err
 	}
 
 	if len(data.Errors) > 0 {
-		for _, e := range data.Errors {
-			fmt.Println("ERROR:", e)
-		}
+		return errors.New("ADDS error(s): " + strings.Join(data.Errors, "\n"))
 	}
 
 	if len(data.Warnings) > 0 {
-		for _, e := range data.Warnings {
-			fmt.Println("WARNING:", e)
-		}
+		return errors.New("ADDS warnings(s): " + strings.Join(data.Warnings, "\n"))
 	}
 
 	var result []string
@@ -142,4 +67,21 @@ func metar(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func init() {
+	metarCmd.Flags().StringSliceVar(&metarOptions.Stations, "stations", []string{}, "")
+	metarCmd.Flags().Var(&metarStartTime, "startTime", "")
+	metarCmd.Flags().Var(&metarEndTime, "endTime", "")
+	metarCmd.Flags().Int32Var(&metarOptions.HoursBeforeNow, "hoursBeforeNow", 6, "")
+	metarCmd.Flags().BoolVar(&metarOptions.MostRecent, "mostRecent", false, "")
+	metarCmd.Flags().BoolVar(&metarOptions.MostRecentForEachStation, "mostRecentForEachStation", true, "")
+	metarCmd.Flags().Float64Var(&metarOptions.MinLat, "minLat", 0, "")
+	metarCmd.Flags().Float64Var(&metarOptions.MaxLat, "maxLat", 0, "")
+	metarCmd.Flags().Float64Var(&metarOptions.MinLon, "minLon", 0, "")
+	metarCmd.Flags().Float64Var(&metarOptions.MaxLon, "maxLon", 0, "")
+	metarCmd.Flags().StringVar(&metarOptions.RadialDistance, "radialDistance", "", "")
+	metarCmd.Flags().StringSliceVar(&metarOptions.FlightPath, "flightPath", []string{}, "")
+	metarCmd.Flags().Float64Var(&metarOptions.MinDegreeDistance, "minDegreeDistance", 0, "")
+	metarCmd.Flags().StringSliceVar(&metarOptions.Fields, "fields", []string{}, "")
 }
