@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/theperiscope/avwx/api"
-	"github.com/theperiscope/avwx/tafs"
+	"github.com/theperiscope/avwx/metars"
 )
 
 var tafCmd = &cobra.Command{
@@ -23,31 +23,18 @@ var prettyPrint = false
 var includeMetar = false
 
 var tafOptions api.TafOptions
-var tafStartTime iso8601TimeValue
-var tafEndTime iso8601TimeValue
 
-func taf(cmd *cobra.Command, args []string) error {
-
-	var data *tafs.Response
-	var err error
+func taf(cmd *cobra.Command, args []string) (err error) {
 
 	if len(tafOptions.Stations) == 0 {
 		return errors.New("At least one station must be specified.")
 	}
 
-	if !tafStartTime.IsZero() {
-		tafOptions.StartTime.Time = tafStartTime.Time
-	}
-
-	if !tafEndTime.IsZero() {
-		tafOptions.EndTime.Time = tafEndTime.Time
-	}
-
 	client := api.NewClient(api.DefaultApiEndPoint)
-	data, err = client.GetTaf(tafOptions)
+	data, err := client.GetTaf(tafOptions)
 
 	if err != nil {
-		return err
+		return
 	}
 
 	if len(data.Errors) > 0 {
@@ -81,10 +68,11 @@ func taf(cmd *cobra.Command, args []string) error {
 			Fields:                   tafOptions.Fields,
 		}
 
-		metarData, err := client.GetMetar(metarOptions)
+		var metarData *metars.Response
+		metarData, err = client.GetMetar(metarOptions)
 
 		if err != nil {
-			return err
+			return
 		}
 
 		if len(data.Errors) > 0 {
@@ -124,12 +112,12 @@ func taf(cmd *cobra.Command, args []string) error {
 
 func init() {
 	tafCmd.Flags().SortFlags = false
-	tafCmd.Flags().BoolVarP(&prettyPrint, "pretty", "p", false, "Easier to read TAF format.")
 	tafCmd.Flags().BoolVarP(&includeMetar, "metar", "m", false, "Include METAR data with TAF.")
+	tafCmd.Flags().BoolVarP(&prettyPrint, "pretty", "p", false, "Easier to read TAF format.")
 
 	tafCmd.Flags().StringSliceVar(&tafOptions.Stations, "stations", []string{}, "required")
-	tafCmd.Flags().Var(&tafStartTime, "startTime", "")
-	tafCmd.Flags().Var(&tafEndTime, "endTime", "")
+	tafCmd.Flags().Var(&tafOptions.StartTime, "startTime", "")
+	tafCmd.Flags().Var(&tafOptions.EndTime, "endTime", "")
 	tafCmd.Flags().StringVar(&tafOptions.TimeType, "timeType", "", "")
 	tafCmd.Flags().Int32Var(&tafOptions.HoursBeforeNow, "hoursBeforeNow", 6, "")
 	tafCmd.Flags().BoolVar(&tafOptions.MostRecent, "mostRecent", false, "")

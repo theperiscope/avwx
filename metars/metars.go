@@ -2,8 +2,7 @@ package metars
 
 import (
 	"encoding/xml"
-
-	"github.com/relvacode/iso8601"
+	"time"
 )
 
 type Response struct {
@@ -47,7 +46,7 @@ type Metar struct {
 	XMLName                   xml.Name            `xml:"METAR"`
 	RawText                   string              `xml:"raw_text"`
 	StationId                 string              `xml:"station_id"`
-	ObservationTime           iso8601.Time        `xml:"observation_time"`
+	ObservationTime           time.Time           `xml:"observation_time"`
 	Latitude                  float64             `xml:"latitude"`
 	Longitude                 float64             `xml:"longitude"`
 	TempC                     float64             `xml:"temp_c"`

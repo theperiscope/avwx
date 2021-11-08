@@ -2,8 +2,7 @@ package tafs
 
 import (
 	"encoding/xml"
-
-	"github.com/relvacode/iso8601"
+	"time"
 )
 
 type Response struct {
@@ -40,44 +39,44 @@ type SkyCondition struct {
 }
 
 type Forecast struct {
-	XMLName             xml.Name     `xml:"forecast"`
-	FcstTimeFrom        iso8601.Time `xml:"fcst_time_from"`
-	FcstTimeTo          iso8601.Time `xml:"fcst_time_to"`
-	ChangeIndicator     string       `xml:"change_indicator"`
-	TimeBecoming        iso8601.Time `xml:"time_becoming"`
-	Probability         int32        `xml:"probability"`
-	WindDirDegrees      int32        `xml:"wind_dir_degrees"`
-	WindSpeedKt         int32        `xml:"wind_speed_kt"`
-	WindGustKt          int32        `xml:"wind_gust_kt"`
-	WindShearHgtFtAgl   int32        `xml:"wind_shear_hgt_ft_agl"`
-	WindShearDirDegrees int32        `xml:"wind_shear_dir_degrees"`
-	WindShearSpeedKt    float64      `xml:"wind_shear_speed_kt"`
-	VisibilityStatuteMi float64      `xml:"visibility_statute_mi"`
-	AltimInHg           int32        `xml:"altim_in_hg"`
-	VertVisFt           string       `xml:"vert_vis_ft"`
-	WxString            string       `xml:"wx_string"`
-	NotDecoded          string       `xml:"not_decoded"`
-	SkyCondition        string       `xml:"sky_condition"`
-	TurbulenceCondition string       `xml:"turbulence_condition"`
-	IcingCondition      string       `xml:"icing_condition"`
-	Temperature         []int32      `xml:"temperature"`
-	ValidTime           string       `xml:"valid_time"`
-	SfcTempC            float64      `xml:"sfc_temp_c"`
-	MaxTempC            float64      `xml:"max_temp_c"`
-	MinTempC            float64      `xml:"min_temp_c"`
+	XMLName             xml.Name  `xml:"forecast"`
+	FcstTimeFrom        time.Time `xml:"fcst_time_from"`
+	FcstTimeTo          time.Time `xml:"fcst_time_to"`
+	ChangeIndicator     string    `xml:"change_indicator"`
+	TimeBecoming        time.Time `xml:"time_becoming"`
+	Probability         int32     `xml:"probability"`
+	WindDirDegrees      int32     `xml:"wind_dir_degrees"`
+	WindSpeedKt         int32     `xml:"wind_speed_kt"`
+	WindGustKt          int32     `xml:"wind_gust_kt"`
+	WindShearHgtFtAgl   int32     `xml:"wind_shear_hgt_ft_agl"`
+	WindShearDirDegrees int32     `xml:"wind_shear_dir_degrees"`
+	WindShearSpeedKt    float64   `xml:"wind_shear_speed_kt"`
+	VisibilityStatuteMi float64   `xml:"visibility_statute_mi"`
+	AltimInHg           int32     `xml:"altim_in_hg"`
+	VertVisFt           string    `xml:"vert_vis_ft"`
+	WxString            string    `xml:"wx_string"`
+	NotDecoded          string    `xml:"not_decoded"`
+	SkyCondition        string    `xml:"sky_condition"`
+	TurbulenceCondition string    `xml:"turbulence_condition"`
+	IcingCondition      string    `xml:"icing_condition"`
+	Temperature         []int32   `xml:"temperature"`
+	ValidTime           string    `xml:"valid_time"`
+	SfcTempC            float64   `xml:"sfc_temp_c"`
+	MaxTempC            float64   `xml:"max_temp_c"`
+	MinTempC            float64   `xml:"min_temp_c"`
 }
 
 type Taf struct {
-	XMLName       xml.Name     `xml:"TAF"`
-	RawText       string       `xml:"raw_text"`
-	StationId     string       `xml:"station_id"`
-	IssueTime     iso8601.Time `xml:"issue_time"`
-	BulletinTime  iso8601.Time `xml:"bulletin_time"`
-	ValidTimeFrom iso8601.Time `xml:"valid_time_from"`
-	ValidTimeTo   iso8601.Time `xml:"valid_time_to"`
-	Remarks       string       `xml:"remarks"`
-	Latitude      float64      `xml:"latitude"`
-	Longitude     float64      `xml:"longitude"`
-	ElevationM    float64      `xml:"elevation_m"`
-	Forecast      []Forecast   `xml:"forecast"`
+	XMLName       xml.Name   `xml:"TAF"`
+	RawText       string     `xml:"raw_text"`
+	StationId     string     `xml:"station_id"`
+	IssueTime     time.Time  `xml:"issue_time"`
+	BulletinTime  time.Time  `xml:"bulletin_time"`
+	ValidTimeFrom time.Time  `xml:"valid_time_from"`
+	ValidTimeTo   time.Time  `xml:"valid_time_to"`
+	Remarks       string     `xml:"remarks"`
+	Latitude      float64    `xml:"latitude"`
+	Longitude     float64    `xml:"longitude"`
+	ElevationM    float64    `xml:"elevation_m"`
+	Forecast      []Forecast `xml:"forecast"`
 }

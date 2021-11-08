@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/relvacode/iso8601"
 	"github.com/theperiscope/avwx/metars"
 	"github.com/theperiscope/avwx/tafs"
 )
@@ -27,8 +27,8 @@ type client struct {
 
 type MetarOptions struct {
 	Stations                 []string
-	StartTime                iso8601.Time
-	EndTime                  iso8601.Time
+	StartTime                timeValue
+	EndTime                  timeValue
 	HoursBeforeNow           int32
 	MostRecent               bool
 	MostRecentForEachStation bool
@@ -44,8 +44,8 @@ type MetarOptions struct {
 
 type TafOptions struct {
 	Stations                 []string
-	StartTime                iso8601.Time
-	EndTime                  iso8601.Time
+	StartTime                timeValue
+	EndTime                  timeValue
 	TimeType                 string // only difference from MetarOptions
 	HoursBeforeNow           int32
 	MostRecent               bool
@@ -83,11 +83,11 @@ func (c *client) GetMetar(options MetarOptions) (*metars.Response, error) {
 	if len(options.Stations) > 0 {
 		q.Set("stationString", strings.Join(options.Stations, " "))
 	}
-	if !options.StartTime.IsZero() {
-		q.Set("startTime", options.StartTime.UTC().Format("2006-01-02T15:04:05Z"))
+	if !time.Time(options.StartTime).IsZero() {
+		q.Set("startTime", options.StartTime.String())
 	}
-	if !options.EndTime.IsZero() {
-		q.Set("endTime", options.EndTime.UTC().Format("2006-01-02T15:04:05Z"))
+	if !time.Time(options.EndTime).IsZero() {
+		q.Set("endTime", options.EndTime.String())
 	}
 	if options.HoursBeforeNow > 0 {
 		q.Set("hoursBeforeNow", strconv.FormatInt(int64(options.HoursBeforeNow), 10))
@@ -159,11 +159,11 @@ func (c *client) GetTaf(options TafOptions) (*tafs.Response, error) {
 	if len(options.Stations) > 0 {
 		q.Set("stationString", strings.Join(options.Stations, " "))
 	}
-	if !options.StartTime.IsZero() {
-		q.Set("startTime", options.StartTime.UTC().Format("2006-01-02T15:04:05Z"))
+	if !time.Time(options.StartTime).IsZero() {
+		q.Set("startTime", options.StartTime.String())
 	}
-	if !options.EndTime.IsZero() {
-		q.Set("endTime", options.EndTime.UTC().Format("2006-01-02T15:04:05Z"))
+	if !time.Time(options.EndTime).IsZero() {
+		q.Set("endTime", options.EndTime.String())
 	}
 	if len(options.TimeType) > 0 {
 		q.Set("timeType", options.TimeType)

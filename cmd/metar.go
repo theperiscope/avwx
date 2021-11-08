@@ -19,30 +19,18 @@ var metarCmd = &cobra.Command{
 }
 
 var metarOptions api.MetarOptions
-var metarStartTime iso8601TimeValue
-var metarEndTime iso8601TimeValue
 
-func metar(cmd *cobra.Command, args []string) error {
-
-	var err error
+func metar(cmd *cobra.Command, args []string) (err error) {
 
 	if len(metarOptions.Stations) == 0 {
 		return errors.New("At least one station must be specified.")
-	}
-
-	if !metarStartTime.IsZero() {
-		metarOptions.StartTime.Time = metarStartTime.Time
-	}
-
-	if !metarEndTime.IsZero() {
-		metarOptions.EndTime.Time = metarEndTime.Time
 	}
 
 	client := api.NewClient(api.DefaultApiEndPoint)
 	data, err := client.GetMetar(metarOptions)
 
 	if err != nil {
-		return err
+		return
 	}
 
 	if len(data.Errors) > 0 {
@@ -59,7 +47,7 @@ func metar(cmd *cobra.Command, args []string) error {
 	}
 
 	if err != nil {
-		return err
+		return
 	}
 
 	if len(result) > 0 {
@@ -73,8 +61,8 @@ func init() {
 	metarCmd.Flags().SortFlags = false
 
 	metarCmd.Flags().StringSliceVar(&metarOptions.Stations, "stations", []string{}, "required")
-	metarCmd.Flags().Var(&metarStartTime, "startTime", "")
-	metarCmd.Flags().Var(&metarEndTime, "endTime", "")
+	metarCmd.Flags().Var(&metarOptions.StartTime, "startTime", "")
+	metarCmd.Flags().Var(&metarOptions.EndTime, "endTime", "")
 	metarCmd.Flags().Int32Var(&metarOptions.HoursBeforeNow, "hoursBeforeNow", 6, "")
 	metarCmd.Flags().BoolVar(&metarOptions.MostRecent, "mostRecent", false, "")
 	metarCmd.Flags().BoolVar(&metarOptions.MostRecentForEachStation, "mostRecentForEachStation", true, "")
