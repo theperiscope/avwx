@@ -1,12 +1,13 @@
 package metars
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"time"
 )
 
 type Response struct {
-	XMLName      xml.Name   `xml:"response"`
+	XMLName      xml.Name   `xml:"response" json:"-"`
 	Version      string     `xml:"version,attr"`
 	RequestIndex int32      `xml:"request_index"`
 	Errors       []string   `xml:"errors>error"`
@@ -18,32 +19,34 @@ type Response struct {
 }
 
 type Request struct {
-	Type string `xml:"type,attr"`
+	XMLName xml.Name `xml:"request" json:"-"`
+	Type    string   `xml:"type,attr"`
 }
 
 type DataSource struct {
-	Name string `xml:"name,attr"`
+	XMLName xml.Name `xml:"data_source" json:"-"`
+	Name    string   `xml:"name,attr"`
 }
 
 type Data struct {
-	XMLName    xml.Name `xml:"data"`
+	XMLName    xml.Name `xml:"data" json:"-"`
 	NumResults int32    `xml:"num_results,attr"`
 	Metars     []Metar  `xml:"METAR"`
 }
 
 type SkyCondition struct {
-	XMLName        xml.Name `xml:"sky_condition"`
+	XMLName        xml.Name `xml:"sky_condition" json:"-"`
 	SkyCover       string   `xml:"sky_cover,attr"`
 	CloudBaseFtAGL int32    `xml:"cloud_base_ft_agl,attr"`
 }
 
 type QualityControlFlags struct {
-	XMLName     xml.Name `xml:"quality_control_flags"`
+	XMLName     xml.Name `xml:"quality_control_flags" json:"-"`
 	AutoStation bool     `xml:"auto_station"`
 }
 
 type Metar struct {
-	XMLName                   xml.Name            `xml:"METAR"`
+	XMLName                   xml.Name            `xml:"METAR" json:"-"`
 	RawText                   string              `xml:"raw_text"`
 	StationId                 string              `xml:"station_id"`
 	ObservationTime           time.Time           `xml:"observation_time"`
@@ -74,4 +77,31 @@ type Metar struct {
 	VertVisFt                 int32               `xml:"vert_vis_ft"`
 	MetarType                 string              `xml:"metar_type"`
 	ElevationM                float64             `xml:"elevation_m"`
+}
+
+func (r *Response) ToRawTextOnly() (s []string) {
+	for _, metar := range r.Data.Metars {
+		s = append(s, metar.RawText)
+	}
+	return
+}
+
+func (r *Response) ToJson() (s string, err error) {
+	bytes, err := json.Marshal(r)
+	if err != nil {
+		return "", err
+	}
+
+	s = string(bytes)
+	return
+}
+
+func (r *Response) ToJsonIndented() (s string, err error) {
+	bytes, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		return "", err
+	}
+
+	s = string(bytes)
+	return
 }

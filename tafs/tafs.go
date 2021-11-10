@@ -1,12 +1,13 @@
 package tafs
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"time"
 )
 
 type Response struct {
-	XMLName      xml.Name   `xml:"response"`
+	XMLName      xml.Name   `xml:"response" json:"-"`
 	Version      string     `xml:"version,attr"`
 	RequestIndex int32      `xml:"request_index"`
 	Errors       []string   `xml:"errors>error"`
@@ -26,20 +27,20 @@ type DataSource struct {
 }
 
 type Data struct {
-	XMLName    xml.Name `xml:"data"`
+	XMLName    xml.Name `xml:"data" json:"-"`
 	NumResults int32    `xml:"num_results,attr"`
 	Tafs       []Taf    `xml:"TAF"`
 }
 
 type SkyCondition struct {
-	XMLName        xml.Name `xml:"sky_condition"`
+	XMLName        xml.Name `xml:"sky_condition" json:"-"`
 	SkyCover       string   `xml:"sky_cover,attr"`
 	CloudBaseFtAGL int32    `xml:"cloud_base_ft_agl,attr"`
 	CloudType      string   `xml:"cloud_type,attr"`
 }
 
 type Forecast struct {
-	XMLName             xml.Name  `xml:"forecast"`
+	XMLName             xml.Name  `xml:"forecast" json:"-"`
 	FcstTimeFrom        time.Time `xml:"fcst_time_from"`
 	FcstTimeTo          time.Time `xml:"fcst_time_to"`
 	ChangeIndicator     string    `xml:"change_indicator"`
@@ -67,7 +68,7 @@ type Forecast struct {
 }
 
 type Taf struct {
-	XMLName       xml.Name   `xml:"TAF"`
+	XMLName       xml.Name   `xml:"TAF" json:"-"`
 	RawText       string     `xml:"raw_text"`
 	StationId     string     `xml:"station_id"`
 	IssueTime     time.Time  `xml:"issue_time"`
@@ -79,4 +80,31 @@ type Taf struct {
 	Longitude     float64    `xml:"longitude"`
 	ElevationM    float64    `xml:"elevation_m"`
 	Forecast      []Forecast `xml:"forecast"`
+}
+
+func (r *Response) ToRawTextOnly() (s []string) {
+	for _, taf := range r.Data.Tafs {
+		s = append(s, taf.RawText)
+	}
+	return
+}
+
+func (r *Response) ToJson() (s string, err error) {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return "", err
+	}
+
+	s = string(b)
+	return
+}
+
+func (r *Response) ToJsonIndented() (s string, err error) {
+	b, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		return "", err
+	}
+
+	s = string(b)
+	return
 }

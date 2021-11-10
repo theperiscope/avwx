@@ -19,12 +19,9 @@ var metarCmd = &cobra.Command{
 }
 
 var metarOptions api.MetarOptions
+var metarOutputFormat = api.NewEnumValue([]string{"json", "json-pretty", "rawtextonly"}, "rawtextonly")
 
 func metar(cmd *cobra.Command, args []string) (err error) {
-
-	if len(metarOptions.Stations) == 0 {
-		return errors.New("At least one station must be specified.")
-	}
 
 	client := api.NewClient(api.DefaultApiEndPoint)
 	data, err := client.GetMetar(metarOptions)
@@ -33,25 +30,32 @@ func metar(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	if len(data.Errors) > 0 {
-		return errors.New("ADDS error(s): " + strings.Join(data.Errors, "\n"))
-	}
+	switch metarOutputFormat.String() {
+	case "json":
+		s, e := data.ToJson()
+		if e != nil {
+			return e
+		}
+		fmt.Println(s)
+	case "json-pretty":
+		s, e := data.ToJsonIndented()
+		if e != nil {
+			return e
+		}
+		fmt.Println(s)
+	case "rawtextonly":
+		if len(data.Errors) > 0 {
+			return errors.New("ADDS error(s): " + strings.Join(data.Errors, "\n"))
+		}
 
-	if len(data.Warnings) > 0 {
-		return errors.New("ADDS warnings(s): " + strings.Join(data.Warnings, "\n"))
-	}
+		if len(data.Warnings) > 0 {
+			return errors.New("ADDS warnings(s): " + strings.Join(data.Warnings, "\n"))
+		}
 
-	var result []string
-	for _, metar := range data.Data.Metars {
-		result = append(result, metar.RawText)
-	}
-
-	if err != nil {
+		fmt.Println(strings.Join(data.ToRawTextOnly(), "\n"))
+	default:
+		err = fmt.Errorf("invalid METAR output format '%s'", metarOutputFormat)
 		return
-	}
-
-	if len(result) > 0 {
-		fmt.Println(strings.Join(result, "\n"))
 	}
 
 	return nil
@@ -60,7 +64,8 @@ func metar(cmd *cobra.Command, args []string) (err error) {
 func init() {
 	metarCmd.Flags().SortFlags = false
 
-	metarCmd.Flags().StringSliceVar(&metarOptions.Stations, "stations", []string{}, "required")
+	metarCmd.Flags().StringSliceVar(&metarOptions.Stations, "stations", []string{}, "")
+	metarCmd.MarkFlagRequired("stations")
 	metarCmd.Flags().Var(&metarOptions.StartTime, "startTime", "")
 	metarCmd.Flags().Var(&metarOptions.EndTime, "endTime", "")
 	metarCmd.Flags().Int32Var(&metarOptions.HoursBeforeNow, "hoursBeforeNow", 6, "")
@@ -74,4 +79,6 @@ func init() {
 	metarCmd.Flags().StringSliceVar(&metarOptions.FlightPath, "flightPath", []string{}, "")
 	metarCmd.Flags().Float64Var(&metarOptions.MinDegreeDistance, "minDegreeDistance", 0, "")
 	metarCmd.Flags().StringSliceVar(&metarOptions.Fields, "fields", []string{}, "")
+
+	metarCmd.Flags().Var(metarOutputFormat, "output", "")
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/theperiscope/avwx/api"
-	"github.com/theperiscope/avwx/metars"
 )
 
 var tafCmd = &cobra.Command{
@@ -19,16 +18,10 @@ var tafCmd = &cobra.Command{
 	Example: `   For examples and detailed description of all flags visit https://www.aviationweather.gov/dataserver/example?datatype=taf`,
 }
 
-var prettyPrint = false
-var includeMetar = false
-
 var tafOptions api.TafOptions
+var tafOutputFormat = api.NewEnumValue([]string{"json", "json-pretty", "rawtextonly", "rawtextonly-pretty"}, "rawtextonly-pretty")
 
 func taf(cmd *cobra.Command, args []string) (err error) {
-
-	if len(tafOptions.Stations) == 0 {
-		return errors.New("At least one station must be specified.")
-	}
 
 	client := api.NewClient(api.DefaultApiEndPoint)
 	data, err := client.GetTaf(tafOptions)
@@ -37,85 +30,48 @@ func taf(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	if len(data.Errors) > 0 {
-		return errors.New("ADDS error(s): " + strings.Join(data.Errors, "\n"))
-	}
-
-	if len(data.Warnings) > 0 {
-		return errors.New("ADDS warnings(s): " + strings.Join(data.Warnings, "\n"))
-	}
-
-	var result []string
-	for _, taf := range data.Data.Tafs {
-		result = append(result, taf.RawText)
-	}
-
-	if includeMetar {
-		metarOptions := api.MetarOptions{
-			Stations:                 tafOptions.Stations,
-			StartTime:                tafOptions.StartTime,
-			EndTime:                  tafOptions.EndTime,
-			HoursBeforeNow:           tafOptions.HoursBeforeNow,
-			MostRecent:               tafOptions.MostRecent,
-			MostRecentForEachStation: tafOptions.MostRecentForEachStation,
-			MinLat:                   tafOptions.MinLat,
-			MaxLat:                   tafOptions.MaxLat,
-			MinLon:                   tafOptions.MinLon,
-			MaxLon:                   tafOptions.MaxLon,
-			RadialDistance:           tafOptions.RadialDistance,
-			FlightPath:               tafOptions.FlightPath,
-			MinDegreeDistance:        tafOptions.MinDegreeDistance,
-			Fields:                   tafOptions.Fields,
+	switch tafOutputFormat.String() {
+	case "json":
+		s, e := data.ToJson()
+		if e != nil {
+			return e
 		}
-
-		var metarData *metars.Response
-		metarData, err = client.GetMetar(metarOptions)
-
-		if err != nil {
-			return
+		fmt.Println(s)
+	case "json-pretty":
+		s, e := data.ToJsonIndented()
+		if e != nil {
+			return e
 		}
-
+		fmt.Println(s)
+	case "rawtextonly":
+	case "rawtextonly-pretty":
 		if len(data.Errors) > 0 {
-			for _, e := range data.Errors {
-				fmt.Println("ERROR:", e)
-			}
+			return errors.New("ADDS error(s): " + strings.Join(data.Errors, "\n"))
 		}
 
 		if len(data.Warnings) > 0 {
-			for _, e := range data.Warnings {
-				fmt.Println("WARNING:", e)
-			}
+			return errors.New("ADDS warnings(s): " + strings.Join(data.Warnings, "\n"))
 		}
 
-		var result []string
-		for _, metar := range metarData.Data.Metars {
-			result = append(result, metar.RawText)
+		if tafOutputFormat.String() == "rawtextonly-pretty" {
+			fmt.Println(strings.Replace(strings.Join(data.ToRawTextOnly(), "\n"), " FM", "\n  FM", -1))
+		} else {
+			fmt.Println(strings.Join(data.ToRawTextOnly(), "\n"))
 		}
 
-		if len(result) > 0 {
-			fmt.Println(strings.Join(result, "\n"))
-		}
+	default:
+		err = fmt.Errorf("invalid output format '%s'", tafOutputFormat)
+		return
 	}
 
-	if prettyPrint {
-		for i := range result {
-			result[i] = strings.Replace(result[i], " FM", "\n  FM", -1)
-		}
-	}
-
-	if len(result) > 0 {
-		fmt.Println(strings.Join(result, "\n"))
-	}
-
-	return nil
+	return
 }
 
 func init() {
 	tafCmd.Flags().SortFlags = false
-	tafCmd.Flags().BoolVarP(&includeMetar, "metar", "m", false, "Include METAR data with TAF.")
-	tafCmd.Flags().BoolVarP(&prettyPrint, "pretty", "p", false, "Easier to read TAF format.")
 
-	tafCmd.Flags().StringSliceVar(&tafOptions.Stations, "stations", []string{}, "required")
+	tafCmd.Flags().StringSliceVar(&tafOptions.Stations, "stations", []string{}, "")
+	tafCmd.MarkFlagRequired("stations")
 	tafCmd.Flags().Var(&tafOptions.StartTime, "startTime", "")
 	tafCmd.Flags().Var(&tafOptions.EndTime, "endTime", "")
 	tafCmd.Flags().StringVar(&tafOptions.TimeType, "timeType", "", "")
@@ -130,4 +86,6 @@ func init() {
 	tafCmd.Flags().StringSliceVar(&tafOptions.FlightPath, "flightPath", []string{}, "")
 	tafCmd.Flags().Float64Var(&tafOptions.MinDegreeDistance, "minDegreeDistance", 0, "")
 	tafCmd.Flags().StringSliceVar(&tafOptions.Fields, "fields", []string{}, "")
+
+	tafCmd.Flags().Var(tafOutputFormat, "output", "")
 }
